@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的Scratch编程平台</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        h1 {
+            color: #4c97ff;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .description {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #555;
+        }
+        .scratch-container {
+            width: 100%;
+            border: 2px solid #4c97ff;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        .controls {
+            padding: 12px;
+            background: #f5f5f5;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        button {
+            padding: 8px 15px;
+            background: #4c97ff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #3373cc;
+        }
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        #scratch-iframe {
+            width: 100%;
+            height: 600px;
+            border: none;
+            display: block;
+        }
+        .status-panel {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        #status-message {
+            color: #555;
+        }
+        .game-data {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 15px;
+            padding: 15px;
+            background: #f0f8ff;
+            border-radius: 5px;
+        }
+        .data-item {
+            display: flex;
+            align-items: center;
+        }
+        .data-item label {
+            margin-right: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        .data-item input {
+            width: 60px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>我的Scratch编程平台</h1>
+        <p class="description">使用下面的工具创建您的Scratch项目</p>
+        
+        <div class="scratch-container">
+            <div class="controls">
+                <button id="btn-insert-move" disabled>插入移动积木</button>
+                <button id="btn-insert-turn" disabled>插入旋转积木</button>
+                <button id="btn-insert-say" disabled>插入说话积木</button>
+                <button id="btn-insert-event" disabled>插入事件积木</button>
+                <button id="btn-run" disabled>运行项目</button>
+                <button id="btn-stop" disabled>停止项目</button>
+                <button id="btn-export" disabled>导出项目</button>
+            </div>
+            
+            <!-- 使用TurboWarp并加载自定义扩展 -->
+            <iframe id="scratch-iframe" 
+                    allowtransparency="true" 
+                    frameborder="0" 
+                    scrolling="no" 
+                    allowfullscreen>
+            </iframe>
+        </div>
+        
+        <div class="status-panel">
+            <strong>状态:</strong> <span id="status-message">正在加载编辑器...</span>
+        </div>
+        
+        <div class="game-data">
+            <div class="data-item">
+                <label for="data-score">分数:</label>
+                <input type="number" id="data-score" value="0" min="0">
+            </div>
+            <div class="data-item">
+                <label for="data-level">等级:</label>
+                <input type="number" id="data-level" value="1" min="1">
+            </div>
+            <div class="data-item">
+                <label for="data-lives">生命:</label>
+                <input type="number" id="data-lives" value="3" min="0">
+            </div>
+            <div class="data-item">
+                <label for="data-username">用户名:</label>
+                <input type="text" id="data-username" value="player">
+            </div>
+            <button id="btn-update-data">更新数据</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 准备自定义扩展URL
+            const extensionURL = 'https://您的服务器地址/my-scratch-extension.js';
+            
+            // 获取iframe元素
+            const iframe = document.getElementById('scratch-iframe');
+            
+            // 设置iframe的src，加载TurboWarp并使用自定义扩展
+            iframe.src = `https://turbowarp.org/editor?hqpen&extension=${encodeURIComponent(extensionURL)}`;
+            
+            // 获取状态消息元素
+            const statusMessage = document.getElementById('status-message');
+            
+            // 获取所有按钮
+            const buttons = document.querySelectorAll('button');
+            const btnInsertMove = document.getElementById('btn-insert-move');
+            const btnInsertTurn = document.getElementById('btn-insert-turn');
+            const btnInsertSay = document.getElementById('btn-insert-say');
+            const btnInsertEvent = document.getElementById('btn-insert-event');
+            const btnRun = document.getElementById('btn-run');
+            const btnStop = document.getElementById('btn-stop');
+            const btnExport = document.getElementById('btn-export');
+            const btnUpdateData = document.getElementById('btn-update-data');
+            
+            // 获取数据输入元素
+            const dataScore = document.getElementById('data-score');
+            const dataLevel = document.getElementById('data-level');
+            const dataLives = document.getElementById('data-lives');
+            const dataUsername = document.getElementById('data-username');
+            
+            // 监听来自编辑器的消息
+            window.addEventListener('message', function(event) {
+                console.log('收到来自编辑器的消息:', event.data);
+                
+                // 处理不同类型的消息
+                if (event.data.type === 'scratchReady') {
+                    // 编辑器已准备就绪
+                    statusMessage.textContent = "Scratch编辑器已准备就绪";
+                    statusMessage.style.color = "#4caf50";
+                    
+                    // 启用所有按钮
+                    buttons.forEach(btn => {
+                        if (btn.id !== 'btn-update-data') {
+                            btn.disabled = false;
+                        }
+                    });
+                    
+                    // 发送初始数据到编辑器
+                    updateExtensionData();
+                    
+                } else if (event.data.type === 'blockInserted') {
+                    // 积木插入成功
+                    statusMessage.textContent = `成功插入${event.data.blockType}积木`;
+                    
+                } else if (event.data.type === 'projectStarted') {
+                    // 项目开始运行
+                    statusMessage.textContent = "项目开始运行";
+                    btnRun.disabled = true;
+                    btnStop.disabled = false;
+                    
+                } else if (event.data.type === 'projectStopped') {
+                    // 项目停止运行
+                    statusMessage.textContent = "项目已停止";
+                    btnRun.disabled = false;
+                    btnStop.disabled = true;
+                    
+                } else if (event.data.type === 'projectData') {
+                    // 收到项目数据
+                    statusMessage.textContent = "成功导出项目数据";
+                    console.log('项目数据:', event.data.projectJSON);
+                    
+                    // 这里可以添加保存项目的代码
+                    // saveProject(event.data.projectJSON);
+                    
+                } else if (event.data.type === 'messageFromScratch') {
+                    // 来自Scratch积木的消息
+                    statusMessage.textContent = `收到来自Scratch的消息: ${event.data.message}`;
+                    
+                } else if (event.data.type === 'getData') {
+                    // Scratch积木请求数据
+                    const key = event.data.key;
+                    const value = getDataValue(key);
+                    console.log(`Scratch请求数据: ${key} = ${value}`);
+                    
+                } else if (event.data.type === 'error') {
+                    // 错误消息
+                    statusMessage.textContent = `错误: ${event.data.message}`;
+                    statusMessage.style.color = "#f44336";
+                }
+            });
+            
+            // 获取数据值的辅助函数
+            function getDataValue(key) {
+                switch (key) {
+                    case 'score': return parseInt(dataScore.value);
+                    case 'level': return parseInt(dataLevel.value);
+                    case 'lives': return parseInt(dataLives.value);
+                    case 'username': return dataUsername.value;
+                    default: return 0;
+                }
+            }
+            
+            // 更新扩展数据
+            function updateExtensionData() {
+                iframe.contentWindow.postMessage({
+                    type: 'updateData',
+                    data: {
+                        score: parseInt(dataScore.value),
+                        level: parseInt(dataLevel.value),
+                        lives: parseInt(dataLives.value),
+                        username: dataUsername.value
+                    }
+                }, '*');
+            }
+            
+            // 按钮点击事件
+            btnInsertMove.addEventListener('click', function() {
+                iframe.contentWindow.postMessage({
+                    type: 'insertBlock',
+                    blockType: 'motion_movesteps',
+                    inputs: {
+                        STEPS: [1, [4, "10"]]
+                    }
+                }, '*');
+            });
+            
+            btnInsertTurn.addEventListener('click', function() {
+                iframe.contentWindow.postMessage({
+                    type: 'insertBlock',
+                    blockType: 'motion_turnright',
+                    inputs: {
+                        DEGREES: [1, [4, "15"]]
+                    }
+                }, '*');
+            });
+            
+            btnInsertSay.addEventListener('click', function() {
+                iframe.contentWindow.postMessage({
+                    type: 'insertBlock',
+                    blockType: 'looks_say',
+                    inputs: {
+                        MESSAGE: [1, [10, "你好，世界！"]]
+                    }
+                }, '*');
+            });
+            
+            btnInsertEvent.addEventListener('click', function() {
+                iframe.contentWindow.postMessage({
+                    type: 'insertBlock',
+                    blockType: 'event_whenflagclicked',
+                    inputs: {}
+                }, '*');
+            });
+            
+            btnRun.addEventListener('click', function() {
+                iframe.contentWindow.postMessage({
+                    type: 'runProject'
+                }, '*');
+            });
+            
+            btnStop.addEventListener('click', function() {
+                iframe.contentWindow.postMessage({
+                    type: 'stopProject'
+                }, '*');
+            });
+            
+            btnExport.addEventListener('click', function() {
+                iframe.contentWindow.postMessage({
+                    type: 'getProjectJSON'
+                }, '*');
+            });
+            
+            btnUpdateData.addEventListener('click', function() {
+                updateExtensionData();
+                statusMessage.textContent = "已更新游戏数据";
+            });
+        });
+    </script>
+</body>
+</html>
